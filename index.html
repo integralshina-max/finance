@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Дымный Гурман — Учёт Партий и Отчёты</title>
+    <title>Дымный Гурман — Учёт Партий, Категорий и Отчёты</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -26,7 +26,7 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold leading-tight">Дымный Гурман</h1>
-                    <p class="text-xs text-slate-400">Финансовый учёт и аналитика</p>
+                    <p class="text-xs text-slate-400">Финансовый учёт и категории</p>
                 </div>
             </div>
             <button onclick="setInitialBalance()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg border border-slate-700 transition">
@@ -62,14 +62,14 @@
         <div>
             <button onclick="openNewBatchModal()" class="w-full bg-orange-600 hover:bg-orange-500 text-white font-semibold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-orange-950/40 transition">
                 <i class="fa-solid fa-cart-plus text-lg"></i>
-                <span>+ Новая закупка / Партия</span>
+                <span>+ Новая закупка / Расход</span>
             </button>
         </div>
 
         <!-- Навигация по 3 Вкладкам -->
         <div class="flex border-b border-slate-800 text-xs sm:text-sm font-medium">
             <button id="tabBatchesBtn" onclick="switchTab('batches')" class="flex-1 py-3 text-center border-b-2 border-orange-500 text-orange-400 font-semibold">
-                <i class="fa-solid fa-boxes-stacked mr-1"></i> Партии
+                <i class="fa-solid fa-boxes-stacked mr-1"></i> Расходы и партии
             </button>
             <button id="tabHistoryBtn" onclick="switchTab('history')" class="flex-1 py-3 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200">
                 <i class="fa-solid fa-list-ol mr-1"></i> Движение денег
@@ -79,10 +79,10 @@
             </button>
         </div>
 
-        <!-- ВКЛАДКА 1: Список Партий -->
+        <!-- ВКЛАДКА 1: Список Партий и Расходов -->
         <div id="tabBatches" class="space-y-4">
             <div id="batchesList" class="space-y-4">
-                <!-- Партии рендерятся сюда -->
+                <!-- Записи рендерятся сюда -->
             </div>
         </div>
 
@@ -107,7 +107,7 @@
 
                 <div class="grid grid-cols-2 gap-3">
                     <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
-                        <p class="text-[11px] text-slate-400">Общие закупки</p>
+                        <p class="text-[11px] text-slate-400">Общие расходы</p>
                         <p class="text-lg font-bold text-rose-400 mt-1" id="repExpense">0 ₴</p>
                     </div>
                     <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
@@ -122,9 +122,19 @@
                         <p class="text-2xl font-extrabold mt-1" id="repProfit">0 ₴</p>
                     </div>
                     <div class="text-right">
-                        <p class="text-xs text-slate-400">Рентабельность продаж</p>
+                        <p class="text-xs text-slate-400">Рентабельность</p>
                         <p class="text-lg font-bold text-orange-400 mt-1" id="repMargin">0%</p>
                     </div>
+                </div>
+            </div>
+
+            <!-- Расходы по категориям за период -->
+            <div class="card rounded-2xl p-4 space-y-3">
+                <h3 class="text-sm font-bold text-slate-300 flex items-center gap-2">
+                    <i class="fa-solid fa-tags text-orange-500"></i> Расходы по категориям
+                </h3>
+                <div id="categoriesReportList" class="space-y-2 text-xs">
+                    <!-- Заполняется динамически -->
                 </div>
             </div>
 
@@ -138,25 +148,15 @@
                         <thead>
                             <tr class="border-b border-slate-800 text-slate-400 pb-2">
                                 <th class="pb-2 font-medium">Месяц</th>
-                                <th class="pb-2 font-medium">Закупка</th>
+                                <th class="pb-2 font-medium">Расходы</th>
                                 <th class="pb-2 font-medium">Продажи</th>
                                 <th class="pb-2 font-medium text-right">Прибыль</th>
                             </tr>
                         </thead>
                         <tbody id="monthsTableBody" class="divide-y divide-slate-800/60">
-                            <!-- Строки месяцев рендерятся сюда -->
+                            <!-- Строки месяцев -->
                         </tbody>
                     </table>
-                </div>
-            </div>
-
-            <!-- Реестр продаж за период -->
-            <div class="card rounded-2xl p-4 space-y-3">
-                <h3 class="text-sm font-bold text-slate-300 flex items-center gap-2">
-                    <i class="fa-solid fa-receipt text-emerald-500"></i> Продажи за выбранный период
-                </h3>
-                <div id="reportSalesList" class="space-y-2 text-xs">
-                    <!-- Список всех продаж -->
                 </div>
             </div>
 
@@ -170,22 +170,34 @@
 
     </main>
 
-    <!-- Модальное окно: Новая закупка (Партия) -->
+    <!-- Модальное окно: Новая закупка / Расход -->
     <div id="newBatchModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
         <div class="card rounded-2xl w-full max-w-md p-5 space-y-4">
             <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-                <h3 class="font-bold text-lg text-white"><i class="fa-solid fa-cart-shopping text-orange-500 mr-2"></i>Новая закупка</h3>
+                <h3 class="font-bold text-lg text-white"><i class="fa-solid fa-cart-shopping text-orange-500 mr-2"></i>Новый расход / Закупка</h3>
                 <button onclick="closeModal('newBatchModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
             
             <div class="space-y-3">
                 <div>
-                    <label class="block text-xs text-slate-400 mb-1">Дата закупки</label>
+                    <label class="block text-xs text-slate-400 mb-1">Дата</label>
                     <input type="date" id="batchDate" class="w-full p-2.5 rounded-xl border text-sm">
                 </div>
                 <div>
-                    <label class="block text-xs text-slate-400 mb-1">Название закупки / Что купили</label>
-                    <input type="text" id="batchTitle" placeholder="Напр: Свинина 20кг + специи" class="w-full p-2.5 rounded-xl border text-sm">
+                    <label class="block text-xs text-slate-400 mb-1">Категория расхода</label>
+                    <select id="batchCategory" class="w-full p-2.5 rounded-xl border text-sm font-semibold">
+                        <option value="Сырьё (мясо, рыба)">🥩 Сырьё (мясо, рыба)</option>
+                        <option value="Специи и оболочки">🧂 Специи и оболочки</option>
+                        <option value="Упаковка">📦 Упаковка</option>
+                        <option value="Электричество / Коммуналка">💡 Электричество / Коммуналка</option>
+                        <option value="Оборудование и инвентарь">🛠️ Оборудование и инвентарь</option>
+                        <option value="Аренда">🏠 Аренда</option>
+                        <option value="Личные расходы / Другое">👤 Личные расходы / Другое</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Название / Описание</label>
+                    <input type="text" id="batchTitle" placeholder="Напр: Свинина 20 кг" class="w-full p-2.5 rounded-xl border text-sm">
                 </div>
                 <div>
                     <label class="block text-xs text-slate-400 mb-1">Сумма расходов (₴)</label>
@@ -194,7 +206,7 @@
             </div>
 
             <div class="flex gap-2 pt-2">
-                <button onclick="saveNewBatch()" class="flex-1 bg-orange-600 hover:bg-orange-500 text-white font-semibold py-2.5 rounded-xl text-sm">Сохранить закупку</button>
+                <button onclick="saveNewBatch()" class="flex-1 bg-orange-600 hover:bg-orange-500 text-white font-semibold py-2.5 rounded-xl text-sm">Сохранить расход</button>
                 <button onclick="closeModal('newBatchModal')" class="bg-slate-800 text-slate-300 px-4 py-2.5 rounded-xl text-sm">Отмена</button>
             </div>
         </div>
@@ -204,7 +216,7 @@
     <div id="saleModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
         <div class="card rounded-2xl w-full max-w-md p-5 space-y-4">
             <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-                <h3 class="font-bold text-lg text-white"><i class="fa-solid fa-hand-holding-dollar text-emerald-500 mr-2"></i>Добавить продажу</h3>
+                <h3 class="font-bold text-lg text-white"><i class="fa-solid fa-hand-holding-dollar text-emerald-500 mr-2"></i>Добавить продажу / Доход</h3>
                 <button onclick="closeModal('saleModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
             
@@ -298,7 +310,8 @@
 
         function saveNewBatch() {
             const date = document.getElementById('batchDate').value;
-            const title = document.getElementById('batchTitle').value.trim() || 'Закупка сырья';
+            const category = document.getElementById('batchCategory').value;
+            const title = document.getElementById('batchTitle').value.trim() || category;
             const expense = parseFloat(document.getElementById('batchExpense').value);
 
             if (!date || isNaN(expense) || expense <= 0) {
@@ -309,6 +322,7 @@
             const newBatch = {
                 id: Date.now().toString(),
                 date: date,
+                category: category,
                 title: title,
                 expense: expense,
                 sales: []
@@ -346,7 +360,7 @@
         }
 
         function deleteBatch(batchId) {
-            if (confirm('Удалить эту закупку и все её продажи?')) {
+            if (confirm('Удалить эту запись и все её продажи?')) {
                 appState.batches = appState.batches.filter(b => b.id !== batchId);
                 saveData();
             }
@@ -398,14 +412,17 @@
         }
 
         function renderApp() {
-            // 1. Собираем единый реестр всех транзакций
             let transactions = [];
 
             appState.batches.forEach(batch => {
+                // Если старые записи без категории, ставим дефолтную
+                if (!batch.category) batch.category = 'Сырьё (мясо, рыба)';
+
                 transactions.push({
                     timestamp: new Date(batch.date).getTime(),
                     date: batch.date,
                     type: 'expense',
+                    category: batch.category,
                     title: batch.title,
                     amount: batch.expense,
                     batchId: batch.id
@@ -416,6 +433,7 @@
                         timestamp: new Date(sale.date).getTime(),
                         date: sale.date,
                         type: 'income',
+                        category: 'Продажи',
                         title: sale.note ? `Продажа (${sale.note})` : `Продажа из «${batch.title}»`,
                         amount: sale.amount,
                         batchId: batch.id,
@@ -436,18 +454,20 @@
             document.getElementById('currentBalance').innerText = formatMoney(runningBalance);
             updateMonthDropdown(transactions);
 
-            // 2. Сбор статистики
+            // Статистика за период
             let mExpense = 0;
             let mIncome = 0;
-            let reportSales = [];
+            let categoryExpenses = {};
 
             transactions.forEach(t => {
                 let tMonth = t.date ? t.date.substring(0, 7) : '';
                 if (selectedMonth === 'all' || tMonth === selectedMonth) {
-                    if (t.type === 'expense') mExpense += t.amount;
+                    if (t.type === 'expense') {
+                        mExpense += t.amount;
+                        categoryExpenses[t.category] = (categoryExpenses[t.category] || 0) + t.amount;
+                    }
                     if (t.type === 'income') {
                         mIncome += t.amount;
-                        reportSales.push(t);
                     }
                 }
             });
@@ -455,17 +475,32 @@
             let mProfit = mIncome - mExpense;
             let margin = mIncome > 0 ? ((mProfit / mIncome) * 100).toFixed(1) : 0;
 
-            // РЕНДЕР ВКЛАДКИ ОТЧЁТЫ
+            // Рендер отчётов
             document.getElementById('repExpense').innerText = '-' + formatMoney(mExpense);
             document.getElementById('repIncome').innerText = '+' + formatMoney(mIncome);
             
             const repProfitEl = document.getElementById('repProfit');
             repProfitEl.innerText = (mProfit >= 0 ? '+' : '') + formatMoney(mProfit);
             repProfitEl.className = `text-2xl font-extrabold mt-1 ${mProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
-
             document.getElementById('repMargin').innerText = margin + '%';
 
-            // Сводка по месяцам в виде таблицы
+            // Категории в отчётах
+            const catListEl = document.getElementById('categoriesReportList');
+            catListEl.innerHTML = '';
+            if (Object.keys(categoryExpenses).length === 0) {
+                catListEl.innerHTML = `<div class="text-slate-500 text-center py-2">Нет расходов за выбранный период</div>`;
+            } else {
+                for (const [cat, sum] of Object.entries(categoryExpenses)) {
+                    catListEl.innerHTML += `
+                        <div class="flex justify-between items-center bg-slate-900/60 p-2 rounded-lg">
+                            <span class="text-slate-200 font-medium">${cat}</span>
+                            <span class="font-bold text-rose-400">-${formatMoney(sum)}</span>
+                        </div>
+                    `;
+                }
+            }
+
+            // Таблица по месяцам
             let monthlyStats = {};
             transactions.forEach(t => {
                 let m = t.date.substring(0, 7);
@@ -492,26 +527,7 @@
                 `;
             });
 
-            // Список продаж в отчёте
-            const reportSalesList = document.getElementById('reportSalesList');
-            reportSalesList.innerHTML = '';
-            if (reportSales.length === 0) {
-                reportSalesList.innerHTML = `<div class="text-slate-500 text-center py-2">Нет продаж за данный период</div>`;
-            } else {
-                reportSales.reverse().forEach(s => {
-                    reportSalesList.innerHTML += `
-                        <div class="flex justify-between items-center bg-slate-900/60 p-2 rounded-lg">
-                            <div>
-                                <span class="text-slate-400 mr-2">${s.date}</span>
-                                <span class="text-slate-200 font-medium">${s.title}</span>
-                            </div>
-                            <span class="font-bold text-emerald-400">+${formatMoney(s.amount)}</span>
-                        </div>
-                    `;
-                });
-            }
-
-            // 3. РЕНДЕР ВКЛАДКИ ПАРТИИ
+            // Список партий
             const batchesListEl = document.getElementById('batchesList');
             batchesListEl.innerHTML = '';
 
@@ -525,7 +541,7 @@
             if (filteredBatches.length === 0) {
                 batchesListEl.innerHTML = `<div class="text-center py-12 text-slate-500">
                     <i class="fa-solid fa-box-open text-4xl mb-3 block"></i>
-                    За выбранный период нет записей.<br>Нажмите «+ Новая закупка / Партия», чтобы добавить.
+                    За выбранный период нет записей.<br>Нажмите «+ Новая закупка / Расход», чтобы добавить.
                 </div>`;
             } else {
                 filteredBatches.forEach(batch => {
@@ -536,12 +552,12 @@
                     let salesHtml = '';
                     if (batch.sales.length > 0) {
                         salesHtml = `<div class="mt-3 pt-3 border-t border-slate-800/80 space-y-1.5">
-                            <p class="text-xs text-slate-400 font-medium mb-1">Продажи из этой партии:</p>`;
+                            <p class="text-xs text-slate-400 font-medium mb-1">Продажи / Доходы:</p>`;
                         batch.sales.forEach(sale => {
                             salesHtml += `<div class="flex justify-between items-center text-xs bg-slate-900/60 p-2 rounded-lg">
                                 <div>
                                     <span class="text-slate-400">${sale.date}</span>
-                                    <span class="text-slate-200 ml-2">${sale.note || 'Продажа'}</span>
+                                    <span class="text-slate-200 ml-2">${sale.note || 'Доход'}</span>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <span class="font-bold text-emerald-400">+${formatMoney(sale.amount)}</span>
@@ -556,15 +572,18 @@
                         <div class="card rounded-2xl p-4 shadow-md space-y-3">
                             <div class="flex justify-between items-start">
                                 <div>
-                                    <span class="text-xs text-slate-400">${batch.date}</span>
-                                    <h3 class="font-bold text-base text-white mt-0.5">${batch.title}</h3>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs text-orange-400 font-medium bg-orange-950/50 px-2 py-0.5 rounded border border-orange-800/50">${batch.category || 'Сырьё'}</span>
+                                        <span class="text-xs text-slate-400">${batch.date}</span>
+                                    </div>
+                                    <h3 class="font-bold text-base text-white mt-1">${batch.title}</h3>
                                 </div>
                                 <button onclick="deleteBatch('${batch.id}')" class="text-slate-500 hover:text-rose-400 p-1"><i class="fa-solid fa-trash-can"></i></button>
                             </div>
 
                             <div class="grid grid-cols-3 gap-2 bg-slate-900/80 p-3 rounded-xl text-center border border-slate-800">
                                 <div>
-                                    <p class="text-[10px] text-slate-400 uppercase">Закупка</p>
+                                    <p class="text-[10px] text-slate-400 uppercase">Расход</p>
                                     <p class="text-sm font-bold text-rose-400">-${formatMoney(batch.expense)}</p>
                                 </div>
                                 <div>
@@ -580,7 +599,7 @@
                             ${salesHtml}
 
                             <button onclick="openSaleModal('${batch.id}')" class="w-full bg-slate-800 hover:bg-slate-700 text-emerald-400 font-medium py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 border border-slate-700 transition">
-                                <i class="fa-solid fa-plus"></i> Продал из этой партии
+                                <i class="fa-solid fa-plus"></i> Добавить продажу / доход
                             </button>
                         </div>
                     `;
@@ -588,7 +607,7 @@
                 });
             }
 
-            // 4. РЕНДЕР ВКЛАДКИ ХРОНОЛОГИЯ ДЕНЕГ
+            // История движения денег
             const historyListEl = document.getElementById('historyList');
             historyListEl.innerHTML = '';
 
@@ -610,8 +629,9 @@
                             <div>
                                 <div class="flex items-center gap-2">
                                     <span class="text-xs text-slate-400">${t.date}</span>
-                                    <span class="font-medium text-slate-200 text-xs">${t.title}</span>
+                                    <span class="text-[11px] text-orange-400 bg-orange-950/40 px-1.5 py-0.5 rounded">${t.category}</span>
                                 </div>
+                                <div class="font-medium text-slate-200 text-xs mt-1">${t.title}</div>
                                 <div class="text-[11px] text-slate-500 mt-0.5">
                                     Остаток в кассе: <strong class="text-slate-300">${formatMoney(t.balanceAfter)}</strong>
                                 </div>

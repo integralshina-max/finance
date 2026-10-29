@@ -193,14 +193,16 @@
 
     </main>
 
-    <!-- Модальное окно: Новая закупка / Расход -->
+    <!-- Модальное окно: Новая / Редактирование закупки (Расхода) -->
     <div id="newBatchModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
         <div class="card rounded-2xl w-full max-w-md p-5 space-y-4">
             <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-                <h3 class="font-bold text-lg text-white"><i class="fa-solid fa-cart-shopping text-orange-500 mr-2"></i>Новый расход / Закупка</h3>
+                <h3 class="font-bold text-lg text-white" id="batchModalTitle"><i class="fa-solid fa-cart-shopping text-orange-500 mr-2"></i>Новый расход / Закупка</h3>
                 <button onclick="closeModal('newBatchModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
             
+            <input type="hidden" id="editBatchId">
+
             <div class="space-y-3">
                 <div>
                     <label class="block text-xs text-slate-400 mb-1">Дата</label>
@@ -221,7 +223,6 @@
                 <div>
                     <label class="block text-xs text-slate-400 mb-1">Название / Описание</label>
                     <input type="text" id="batchTitle" placeholder="Напр: Свинина 20 кг" class="w-full p-2.5 rounded-xl border text-sm">
-                    <!-- Быстрые пресеты -->
                     <div class="flex flex-wrap gap-1.5 mt-2">
                         <button type="button" onclick="setPresetTitle('Свинина')" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded border border-slate-700">Свинина</button>
                         <button type="button" onclick="setPresetTitle('Говядина')" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded border border-slate-700">Говядина</button>
@@ -237,21 +238,22 @@
             </div>
 
             <div class="flex gap-2 pt-2">
-                <button onclick="saveNewBatch()" class="flex-1 bg-orange-600 hover:bg-orange-500 text-white font-semibold py-2.5 rounded-xl text-sm">Сохранить расход</button>
+                <button onclick="saveBatchData()" class="flex-1 bg-orange-600 hover:bg-orange-500 text-white font-semibold py-2.5 rounded-xl text-sm">Сохранить</button>
                 <button onclick="closeModal('newBatchModal')" class="bg-slate-800 text-slate-300 px-4 py-2.5 rounded-xl text-sm">Отмена</button>
             </div>
         </div>
     </div>
 
-    <!-- Модальное окно: Продажа из партии -->
+    <!-- Модальное окно: Новая / Редактирование продажи -->
     <div id="saleModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
         <div class="card rounded-2xl w-full max-w-md p-5 space-y-4">
             <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-                <h3 class="font-bold text-lg text-white"><i class="fa-solid fa-hand-holding-dollar text-emerald-500 mr-2"></i>Добавить продажу / Доход</h3>
+                <h3 class="font-bold text-lg text-white" id="saleModalTitle"><i class="fa-solid fa-hand-holding-dollar text-emerald-500 mr-2"></i>Добавить продажу / Доход</h3>
                 <button onclick="closeModal('saleModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
             
             <input type="hidden" id="saleBatchId">
+            <input type="hidden" id="editSaleId">
 
             <div class="space-y-3">
                 <div>
@@ -276,7 +278,7 @@
             </div>
 
             <div class="flex gap-2 pt-2">
-                <button onclick="saveSale()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-xl text-sm">Внести продажу</button>
+                <button onclick="saveSaleData()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-xl text-sm">Сохранить</button>
                 <button onclick="closeModal('saleModal')" class="bg-slate-800 text-slate-300 px-4 py-2.5 rounded-xl text-sm">Отмена</button>
             </div>
         </div>
@@ -333,10 +335,28 @@
             }
         }
 
+        // Открыть окно добавления расхода
         function openNewBatchModal() {
+            document.getElementById('editBatchId').value = '';
+            document.getElementById('batchModalTitle').innerHTML = '<i class="fa-solid fa-cart-shopping text-orange-500 mr-2"></i>Новый расход / Закупка';
             document.getElementById('batchDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('batchCategory').value = 'Сырьё (мясо, рыба)';
             document.getElementById('batchTitle').value = '';
             document.getElementById('batchExpense').value = '';
+            document.getElementById('newBatchModal').classList.remove('hidden');
+        }
+
+        // Открыть окно редактирования расхода
+        function openEditBatchModal(batchId) {
+            const batch = appState.batches.find(b => b.id === batchId);
+            if (!batch) return;
+
+            document.getElementById('editBatchId').value = batch.id;
+            document.getElementById('batchModalTitle').innerHTML = '<i class="fa-solid fa-pen-to-square text-orange-500 mr-2"></i>Редактировать расход';
+            document.getElementById('batchDate').value = batch.date;
+            document.getElementById('batchCategory').value = batch.category || 'Сырьё (мясо, рыба)';
+            document.getElementById('batchTitle').value = batch.title;
+            document.getElementById('batchExpense').value = batch.expense;
             document.getElementById('newBatchModal').classList.remove('hidden');
         }
 
@@ -344,8 +364,11 @@
             document.getElementById('batchTitle').value = title;
         }
 
+        // Открыть окно добавления продажи
         function openSaleModal(batchId) {
             document.getElementById('saleBatchId').value = batchId;
+            document.getElementById('editSaleId').value = '';
+            document.getElementById('saleModalTitle').innerHTML = '<i class="fa-solid fa-hand-holding-dollar text-emerald-500 mr-2"></i>Добавить продажу / Доход';
             document.getElementById('saleDate').value = new Date().toISOString().split('T')[0];
             document.getElementById('saleAmount').value = '';
             document.getElementById('saleNote').value = '';
@@ -353,11 +376,30 @@
             document.getElementById('saleModal').classList.remove('hidden');
         }
 
+        // Открыть окно редактирования продажи
+        function openEditSaleModal(batchId, saleId) {
+            const batch = appState.batches.find(b => b.id === batchId);
+            if (!batch) return;
+            const sale = batch.sales.find(s => s.id === saleId);
+            if (!sale) return;
+
+            document.getElementById('saleBatchId').value = batch.id;
+            document.getElementById('editSaleId').value = sale.id;
+            document.getElementById('saleModalTitle').innerHTML = '<i class="fa-solid fa-pen-to-square text-emerald-500 mr-2"></i>Редактировать продажу';
+            document.getElementById('saleDate').value = sale.date;
+            document.getElementById('saleAmount').value = sale.amount;
+            document.getElementById('saleStatus').value = sale.status || 'paid';
+            document.getElementById('saleNote').value = sale.note || '';
+            document.getElementById('saleModal').classList.remove('hidden');
+        }
+
         function closeModal(id) {
             document.getElementById(id).classList.add('hidden');
         }
 
-        function saveNewBatch() {
+        // Сохранить расход (новый или отредактированный)
+        function saveBatchData() {
+            const editId = document.getElementById('editBatchId').value;
             const date = document.getElementById('batchDate').value;
             const category = document.getElementById('batchCategory').value;
             const title = document.getElementById('batchTitle').value.trim() || category;
@@ -368,23 +410,37 @@
                 return;
             }
 
-            const newBatch = {
-                id: Date.now().toString(),
-                date: date,
-                category: category,
-                title: title,
-                expense: expense,
-                sales: []
-            };
+            if (editId) {
+                // Редактирование существующего
+                const batch = appState.batches.find(b => b.id === editId);
+                if (batch) {
+                    batch.date = date;
+                    batch.category = category;
+                    batch.title = title;
+                    batch.expense = expense;
+                }
+            } else {
+                // Создание нового
+                const newBatch = {
+                    id: Date.now().toString(),
+                    date: date,
+                    category: category,
+                    title: title,
+                    expense: expense,
+                    sales: []
+                };
+                appState.batches.unshift(newBatch);
+                selectedMonth = date.substring(0, 7);
+            }
 
-            appState.batches.unshift(newBatch);
-            selectedMonth = date.substring(0, 7);
             closeModal('newBatchModal');
             saveData();
         }
 
-        function saveSale() {
+        // Сохранить продажу (новую или отредактированную)
+        function saveSaleData() {
             const batchId = document.getElementById('saleBatchId').value;
+            const editSaleId = document.getElementById('editSaleId').value;
             const date = document.getElementById('saleDate').value;
             const amount = parseFloat(document.getElementById('saleAmount').value);
             const status = document.getElementById('saleStatus').value;
@@ -397,13 +453,25 @@
 
             const batch = appState.batches.find(b => b.id === batchId);
             if (batch) {
-                batch.sales.push({
-                    id: Date.now().toString(),
-                    date: date,
-                    amount: amount,
-                    status: status, // 'paid' или 'debt'
-                    note: note
-                });
+                if (editSaleId) {
+                    // Редактирование продажи
+                    const sale = batch.sales.find(s => s.id === editSaleId);
+                    if (sale) {
+                        sale.date = date;
+                        sale.amount = amount;
+                        sale.status = status;
+                        sale.note = note;
+                    }
+                } else {
+                    // Новая продажа
+                    batch.sales.push({
+                        id: Date.now().toString(),
+                        date: date,
+                        amount: amount,
+                        status: status,
+                        note: note
+                    });
+                }
             }
 
             closeModal('saleModal');
@@ -480,7 +548,6 @@
             appState.batches.forEach(batch => {
                 if (!batch.category) batch.category = 'Сырьё (мясо, рыба)';
 
-                // Расход попадает в кассу сразу
                 transactions.push({
                     timestamp: new Date(batch.date).getTime(),
                     date: batch.date,
@@ -495,7 +562,6 @@
                     if (sale.status === 'debt') {
                         totalUnpaidDebt += sale.amount;
                     } else {
-                        // Доход попадает в кассу только если оплачено
                         transactions.push({
                             timestamp: new Date(sale.date).getTime(),
                             date: sale.date,
@@ -522,7 +588,6 @@
             document.getElementById('currentBalance').innerText = formatMoney(runningBalance);
             updateMonthDropdown(transactions);
 
-            // Индикатор долгов в отчётах
             const debtInfoEl = document.getElementById('totalDebtInfo');
             if (totalUnpaidDebt > 0) {
                 debtInfoEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> Всего неоплаченных долгов от клиентов: <strong>${formatMoney(totalUnpaidDebt)}</strong>`;
@@ -531,13 +596,9 @@
                 debtInfoEl.classList.add('hidden');
             }
 
-            // Статистика за период
             let mExpense = 0;
             let mIncome = 0;
             let categoryExpenses = {};
-
-            // Также соберём все продажи (и оплаченные, и долги) для отчёта
-            let allPeriodSales = 0;
 
             appState.batches.forEach(batch => {
                 let batchMonth = batch.date.substring(0, 7);
@@ -549,7 +610,6 @@
                 batch.sales.forEach(sale => {
                     let saleMonth = sale.date.substring(0, 7);
                     if (selectedMonth === 'all' || saleMonth === selectedMonth) {
-                        allPeriodSales += sale.amount;
                         if (sale.status !== 'debt') {
                             mIncome += sale.amount;
                         }
@@ -568,7 +628,6 @@
             repProfitEl.className = `text-2xl font-extrabold mt-1 ${mProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
             document.getElementById('repMargin').innerText = margin + '%';
 
-            // Категории в отчётах со шкалами
             const catListEl = document.getElementById('categoriesReportList');
             catListEl.innerHTML = '';
             if (Object.keys(categoryExpenses).length === 0 || mExpense === 0) {
@@ -590,7 +649,6 @@
                 }
             }
 
-            // Таблица по месяцам
             let monthlyStats = {};
             appState.batches.forEach(batch => {
                 let m = batch.date.substring(0, 7);
@@ -624,7 +682,6 @@
                 `;
             });
 
-            // Список партий с поиском
             const searchQuery = document.getElementById('searchInput').value.toLowerCase();
             const batchesListEl = document.getElementById('batchesList');
             batchesListEl.innerHTML = '';
@@ -672,7 +729,8 @@
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <span class="font-bold ${isDebt ? 'text-amber-400' : 'text-emerald-400'}">+${formatMoney(sale.amount)}</span>
-                                    <button onclick="deleteSale('${batch.id}', '${sale.id}')" class="text-slate-500 hover:text-rose-400"><i class="fa-solid fa-trash-can"></i></button>
+                                    <button onclick="openEditSaleModal('${batch.id}', '${sale.id}')" class="text-slate-500 hover:text-orange-400 p-1"><i class="fa-solid fa-pen"></i></button>
+                                    <button onclick="deleteSale('${batch.id}', '${sale.id}')" class="text-slate-500 hover:text-rose-400 p-1"><i class="fa-solid fa-trash-can"></i></button>
                                 </div>
                             </div>`;
                         });
@@ -689,7 +747,10 @@
                                     </div>
                                     <h3 class="font-bold text-base text-white mt-1">${batch.title}</h3>
                                 </div>
-                                <button onclick="deleteBatch('${batch.id}')" class="text-slate-500 hover:text-rose-400 p-1"><i class="fa-solid fa-trash-can"></i></button>
+                                <div class="flex items-center gap-1">
+                                    <button onclick="openEditBatchModal('${batch.id}')" class="text-slate-500 hover:text-orange-400 p-1.5"><i class="fa-solid fa-pen"></i></button>
+                                    <button onclick="deleteBatch('${batch.id}')" class="text-slate-500 hover:text-rose-400 p-1.5"><i class="fa-solid fa-trash-can"></i></button>
+                                </div>
                             </div>
 
                             <div class="grid grid-cols-3 gap-2 bg-slate-900/80 p-3 rounded-xl text-center border border-slate-800">
@@ -718,7 +779,6 @@
                 });
             }
 
-            // История движения денег
             const historyListEl = document.getElementById('historyList');
             historyListEl.innerHTML = '';
 
@@ -757,7 +817,6 @@
             }
         }
 
-        // Экспорт в CSV (Excel)
         function exportToCSV() {
             let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
             csvContent += "Дата;Тип;Категория;Название / Описание;Сумма (UAH);Статус\n";

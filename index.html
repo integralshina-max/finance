@@ -35,7 +35,7 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold leading-tight">Дымный Гурман</h1>
-                    <p class="text-xs text-slate-400">Финансовый учёт и категории</p>
+                    <p class="text-xs text-slate-400">Финансовый учёт и аналитика</p>
                 </div>
             </div>
             <button onclick="setInitialBalance()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg border border-slate-700 transition">
@@ -52,7 +52,7 @@
             <div class="text-3xl font-extrabold text-white mt-1" id="currentBalance">0 ₴</div>
             <p class="text-xs text-slate-400 mt-2 flex items-center gap-1">
                 <i class="fa-solid fa-circle-info text-orange-400"></i>
-                Реальный остаток средств по всем операциям
+                Реальный остаток средств (учитывает только фактически полученные деньги)
             </p>
         </div>
 
@@ -90,6 +90,12 @@
 
         <!-- ВКЛАДКА 1: Список Партий и Расходов -->
         <div id="tabBatches" class="space-y-4">
+            <!-- Строка поиска -->
+            <div class="relative">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-slate-400 text-sm"></i>
+                <input type="text" id="searchInput" oninput="renderApp()" placeholder="Поиск по названию или категории..." class="w-full p-2.5 pl-10 rounded-xl border text-sm">
+            </div>
+
             <div id="batchesList" class="space-y-4">
                 <!-- Записи рендерятся сюда -->
             </div>
@@ -110,9 +116,14 @@
             
             <!-- Сводка за выбранный период -->
             <div class="card rounded-2xl p-5 space-y-4">
-                <h3 class="text-sm font-bold text-orange-400 uppercase tracking-wider flex items-center gap-2">
-                    <i class="fa-solid fa-file-invoice-dollar"></i> Сводка показателей за период
-                </h3>
+                <div class="flex justify-between items-center">
+                    <h3 class="text-sm font-bold text-orange-400 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-file-invoice-dollar"></i> Сводка за период
+                    </h3>
+                    <button onclick="exportToCSV()" class="text-xs bg-slate-800 hover:bg-slate-700 text-orange-400 px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-1">
+                        <i class="fa-solid fa-file-excel"></i> Экспорт в Excel
+                    </button>
+                </div>
 
                 <div class="grid grid-cols-2 gap-3">
                     <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
@@ -120,7 +131,7 @@
                         <p class="text-lg font-bold text-rose-400 mt-1" id="repExpense">0 ₴</p>
                     </div>
                     <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
-                        <p class="text-[11px] text-slate-400">Общие продажи</p>
+                        <p class="text-[11px] text-slate-400">Общие продажи (оплачено)</p>
                         <p class="text-lg font-bold text-emerald-400 mt-1" id="repIncome">0 ₴</p>
                     </div>
                 </div>
@@ -135,14 +146,17 @@
                         <p class="text-lg font-bold text-orange-400 mt-1" id="repMargin">0%</p>
                     </div>
                 </div>
+                <div id="totalDebtInfo" class="text-xs text-amber-400 bg-amber-950/30 p-2.5 rounded-lg border border-amber-900/50 hidden">
+                    <!-- Сумма долгов покупателей -->
+                </div>
             </div>
 
-            <!-- Расходы по категориям за период -->
+            <!-- Расходы по категориям за период со шкалами -->
             <div class="card rounded-2xl p-4 space-y-3">
                 <h3 class="text-sm font-bold text-slate-300 flex items-center gap-2">
                     <i class="fa-solid fa-tags text-orange-500"></i> Расходы по категориям
                 </h3>
-                <div id="categoriesReportList" class="space-y-2 text-xs">
+                <div id="categoriesReportList" class="space-y-3 text-xs">
                     <!-- Заполняется динамически -->
                 </div>
             </div>
@@ -173,7 +187,7 @@
 
         <!-- Экспорт / Импорт данных -->
         <div class="pt-6 border-t border-slate-800 flex justify-between text-xs text-slate-500">
-            <button onclick="exportData()" class="hover:text-slate-300"><i class="fa-solid fa-download mr-1"></i> Сохранить бэкап</button>
+            <button onclick="exportData()" class="hover:text-slate-300"><i class="fa-solid fa-download mr-1"></i> Бэкап (JSON)</button>
             <button onclick="importData()" class="hover:text-slate-300"><i class="fa-solid fa-upload mr-1"></i> Восстановить</button>
         </div>
 
@@ -207,6 +221,14 @@
                 <div>
                     <label class="block text-xs text-slate-400 mb-1">Название / Описание</label>
                     <input type="text" id="batchTitle" placeholder="Напр: Свинина 20 кг" class="w-full p-2.5 rounded-xl border text-sm">
+                    <!-- Быстрые пресеты -->
+                    <div class="flex flex-wrap gap-1.5 mt-2">
+                        <button type="button" onclick="setPresetTitle('Свинина')" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded border border-slate-700">Свинина</button>
+                        <button type="button" onclick="setPresetTitle('Говядина')" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded border border-slate-700">Говядина</button>
+                        <button type="button" onclick="setPresetTitle('Специи и нитритная соль')" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded border border-slate-700">Специи</button>
+                        <button type="button" onclick="setPresetTitle('Оболочка')" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded border border-slate-700">Оболочка</button>
+                        <button type="button" onclick="setPresetTitle('Щепа')" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded border border-slate-700">Щепа</button>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-xs text-slate-400 mb-1">Сумма расходов (₴)</label>
@@ -241,20 +263,26 @@
                     <input type="number" id="saleAmount" placeholder="4000" class="w-full p-2.5 rounded-xl border text-sm">
                 </div>
                 <div>
-                    <label class="block text-xs text-slate-400 mb-1">Примечание (необязательно)</label>
-                    <input type="text" id="saleNote" placeholder="Напр: Продал всё ребро и балык" class="w-full p-2.5 rounded-xl border text-sm">
+                    <label class="block text-xs text-slate-400 mb-1">Статус оплаты</label>
+                    <select id="saleStatus" class="w-full p-2.5 rounded-xl border text-sm font-semibold">
+                        <option value="paid">✅ Оплачено (деньги в кассе)</option>
+                        <option value="debt">⏳ В долг / Под запись (клиент должен)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Примечание (клиент / состав)</label>
+                    <input type="text" id="saleNote" placeholder="Напр: Иван (ребро и сырокопченая)" class="w-full p-2.5 rounded-xl border text-sm">
                 </div>
             </div>
 
             <div class="flex gap-2 pt-2">
-                <button onclick="saveSale()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-xl text-sm">Внести доход</button>
+                <button onclick="saveSale()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-xl text-sm">Внести продажу</button>
                 <button onclick="closeModal('saleModal')" class="bg-slate-800 text-slate-300 px-4 py-2.5 rounded-xl text-sm">Отмена</button>
             </div>
         </div>
     </div>
 
     <script>
-        // Регистрация Сервис-Воркера для офлайн работы и установки как PWA
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW reg error:', err));
@@ -312,11 +340,16 @@
             document.getElementById('newBatchModal').classList.remove('hidden');
         }
 
+        function setPresetTitle(title) {
+            document.getElementById('batchTitle').value = title;
+        }
+
         function openSaleModal(batchId) {
             document.getElementById('saleBatchId').value = batchId;
             document.getElementById('saleDate').value = new Date().toISOString().split('T')[0];
             document.getElementById('saleAmount').value = '';
             document.getElementById('saleNote').value = '';
+            document.getElementById('saleStatus').value = 'paid';
             document.getElementById('saleModal').classList.remove('hidden');
         }
 
@@ -354,6 +387,7 @@
             const batchId = document.getElementById('saleBatchId').value;
             const date = document.getElementById('saleDate').value;
             const amount = parseFloat(document.getElementById('saleAmount').value);
+            const status = document.getElementById('saleStatus').value;
             const note = document.getElementById('saleNote').value.trim();
 
             if (!date || isNaN(amount) || amount <= 0) {
@@ -367,12 +401,24 @@
                     id: Date.now().toString(),
                     date: date,
                     amount: amount,
+                    status: status, // 'paid' или 'debt'
                     note: note
                 });
             }
 
             closeModal('saleModal');
             saveData();
+        }
+
+        function toggleSaleStatus(batchId, saleId) {
+            const batch = appState.batches.find(b => b.id === batchId);
+            if (batch) {
+                const sale = batch.sales.find(s => s.id === saleId);
+                if (sale) {
+                    sale.status = sale.status === 'debt' ? 'paid' : 'debt';
+                    saveData();
+                }
+            }
         }
 
         function deleteBatch(batchId) {
@@ -429,10 +475,12 @@
 
         function renderApp() {
             let transactions = [];
+            let totalUnpaidDebt = 0;
 
             appState.batches.forEach(batch => {
                 if (!batch.category) batch.category = 'Сырьё (мясо, рыба)';
 
+                // Расход попадает в кассу сразу
                 transactions.push({
                     timestamp: new Date(batch.date).getTime(),
                     date: batch.date,
@@ -444,16 +492,21 @@
                 });
 
                 batch.sales.forEach(sale => {
-                    transactions.push({
-                        timestamp: new Date(sale.date).getTime(),
-                        date: sale.date,
-                        type: 'income',
-                        category: 'Продажи',
-                        title: sale.note ? `Продажа (${sale.note})` : `Продажа из «${batch.title}»`,
-                        amount: sale.amount,
-                        batchId: batch.id,
-                        saleId: sale.id
-                    });
+                    if (sale.status === 'debt') {
+                        totalUnpaidDebt += sale.amount;
+                    } else {
+                        // Доход попадает в кассу только если оплачено
+                        transactions.push({
+                            timestamp: new Date(sale.date).getTime(),
+                            date: sale.date,
+                            type: 'income',
+                            category: 'Продажи',
+                            title: sale.note ? `Продажа (${sale.note})` : `Продажа из «${batch.title}»`,
+                            amount: sale.amount,
+                            batchId: batch.id,
+                            saleId: sale.id
+                        });
+                    }
                 });
             });
 
@@ -469,21 +522,39 @@
             document.getElementById('currentBalance').innerText = formatMoney(runningBalance);
             updateMonthDropdown(transactions);
 
+            // Индикатор долгов в отчётах
+            const debtInfoEl = document.getElementById('totalDebtInfo');
+            if (totalUnpaidDebt > 0) {
+                debtInfoEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> Всего неоплаченных долгов от клиентов: <strong>${formatMoney(totalUnpaidDebt)}</strong>`;
+                debtInfoEl.classList.remove('hidden');
+            } else {
+                debtInfoEl.classList.add('hidden');
+            }
+
+            // Статистика за период
             let mExpense = 0;
             let mIncome = 0;
             let categoryExpenses = {};
 
-            transactions.forEach(t => {
-                let tMonth = t.date ? t.date.substring(0, 7) : '';
-                if (selectedMonth === 'all' || tMonth === selectedMonth) {
-                    if (t.type === 'expense') {
-                        mExpense += t.amount;
-                        categoryExpenses[t.category] = (categoryExpenses[t.category] || 0) + t.amount;
-                    }
-                    if (t.type === 'income') {
-                        mIncome += t.amount;
-                    }
+            // Также соберём все продажи (и оплаченные, и долги) для отчёта
+            let allPeriodSales = 0;
+
+            appState.batches.forEach(batch => {
+                let batchMonth = batch.date.substring(0, 7);
+                if (selectedMonth === 'all' || batchMonth === selectedMonth) {
+                    mExpense += batch.expense;
+                    categoryExpenses[batch.category] = (categoryExpenses[batch.category] || 0) + batch.expense;
                 }
+
+                batch.sales.forEach(sale => {
+                    let saleMonth = sale.date.substring(0, 7);
+                    if (selectedMonth === 'all' || saleMonth === selectedMonth) {
+                        allPeriodSales += sale.amount;
+                        if (sale.status !== 'debt') {
+                            mIncome += sale.amount;
+                        }
+                    }
+                });
             });
 
             let mProfit = mIncome - mExpense;
@@ -497,27 +568,42 @@
             repProfitEl.className = `text-2xl font-extrabold mt-1 ${mProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
             document.getElementById('repMargin').innerText = margin + '%';
 
+            // Категории в отчётах со шкалами
             const catListEl = document.getElementById('categoriesReportList');
             catListEl.innerHTML = '';
-            if (Object.keys(categoryExpenses).length === 0) {
+            if (Object.keys(categoryExpenses).length === 0 || mExpense === 0) {
                 catListEl.innerHTML = `<div class="text-slate-500 text-center py-2">Нет расходов за выбранный период</div>`;
             } else {
                 for (const [cat, sum] of Object.entries(categoryExpenses)) {
+                    let percent = ((sum / mExpense) * 100).toFixed(0);
                     catListEl.innerHTML += `
-                        <div class="flex justify-between items-center bg-slate-900/60 p-2 rounded-lg">
-                            <span class="text-slate-200 font-medium">${cat}</span>
-                            <span class="font-bold text-rose-400">-${formatMoney(sum)}</span>
+                        <div class="space-y-1">
+                            <div class="flex justify-between font-medium">
+                                <span class="text-slate-200">${cat}</span>
+                                <span class="text-rose-400">-${formatMoney(sum)} (${percent}%)</span>
+                            </div>
+                            <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
+                                <div class="bg-orange-500 h-full rounded-full" style="width: ${percent}%"></div>
+                            </div>
                         </div>
                     `;
                 }
             }
 
+            // Таблица по месяцам
             let monthlyStats = {};
-            transactions.forEach(t => {
-                let m = t.date.substring(0, 7);
+            appState.batches.forEach(batch => {
+                let m = batch.date.substring(0, 7);
                 if (!monthlyStats[m]) monthlyStats[m] = { expense: 0, income: 0 };
-                if (t.type === 'expense') monthlyStats[m].expense += t.amount;
-                if (t.type === 'income') monthlyStats[m].income += t.amount;
+                monthlyStats[m].expense += batch.expense;
+
+                batch.sales.forEach(sale => {
+                    if (sale.status !== 'debt') {
+                        let sm = sale.date.substring(0, 7);
+                        if (!monthlyStats[sm]) monthlyStats[sm] = { expense: 0, income: 0 };
+                        monthlyStats[sm].income += sale.amount;
+                    }
+                });
             });
 
             const monthsTableBody = document.getElementById('monthsTableBody');
@@ -538,24 +624,34 @@
                 `;
             });
 
+            // Список партий с поиском
+            const searchQuery = document.getElementById('searchInput').value.toLowerCase();
             const batchesListEl = document.getElementById('batchesList');
             batchesListEl.innerHTML = '';
 
             let filteredBatches = appState.batches.filter(batch => {
-                if (selectedMonth === 'all') return true;
-                let batchMonth = batch.date.substring(0, 7);
-                let hasSaleInMonth = batch.sales.some(s => s.date.substring(0, 7) === selectedMonth);
-                return batchMonth === selectedMonth || hasSaleInMonth;
+                if (selectedMonth !== 'all') {
+                    let batchMonth = batch.date.substring(0, 7);
+                    let hasSaleInMonth = batch.sales.some(s => s.date.substring(0, 7) === selectedMonth);
+                    if (batchMonth !== selectedMonth && !hasSaleInMonth) return false;
+                }
+                if (searchQuery) {
+                    const matchTitle = batch.title.toLowerCase().includes(searchQuery);
+                    const matchCategory = batch.category.toLowerCase().includes(searchQuery);
+                    const matchSale = batch.sales.some(s => (s.note || '').toLowerCase().includes(searchQuery));
+                    if (!matchTitle && !matchCategory && !matchSale) return false;
+                }
+                return true;
             });
 
             if (filteredBatches.length === 0) {
                 batchesListEl.innerHTML = `<div class="text-center py-12 text-slate-500">
                     <i class="fa-solid fa-box-open text-4xl mb-3 block"></i>
-                    За выбранный период нет записей.<br>Нажмите «+ Новая закупка / Расход», чтобы добавить.
+                    Ничего не найдено.<br>Измените поисковый запрос или добавьте новую запись.
                 </div>`;
             } else {
                 filteredBatches.forEach(batch => {
-                    const totalSales = batch.sales.reduce((sum, s) => sum + s.amount, 0);
+                    const totalSales = batch.sales.reduce((sum, s) => s.status !== 'debt' ? sum + s.amount : sum, 0);
                     const netProfit = totalSales - batch.expense;
                     const profitClass = netProfit >= 0 ? 'text-emerald-400' : 'text-rose-400';
 
@@ -564,13 +660,18 @@
                         salesHtml = `<div class="mt-3 pt-3 border-t border-slate-800/80 space-y-1.5">
                             <p class="text-xs text-slate-400 font-medium mb-1">Продажи / Доходы:</p>`;
                         batch.sales.forEach(sale => {
+                            const isDebt = sale.status === 'debt';
+                            const badgeClass = isDebt ? 'bg-amber-950/60 text-amber-400 border-amber-800/50' : 'bg-emerald-950/60 text-emerald-400 border-emerald-800/50';
+                            const badgeText = isDebt ? 'В долг' : 'Оплачено';
+
                             salesHtml += `<div class="flex justify-between items-center text-xs bg-slate-900/60 p-2 rounded-lg">
                                 <div>
                                     <span class="text-slate-400">${sale.date}</span>
-                                    <span class="text-slate-200 ml-2">${sale.note || 'Доход'}</span>
+                                    <span class="text-slate-200 ml-2 font-medium">${sale.note || 'Доход'}</span>
+                                    <button onclick="toggleSaleStatus('${batch.id}', '${sale.id}')" class="ml-2 px-1.5 py-0.5 rounded border text-[10px] ${badgeClass}">${badgeText}</button>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <span class="font-bold text-emerald-400">+${formatMoney(sale.amount)}</span>
+                                    <span class="font-bold ${isDebt ? 'text-amber-400' : 'text-emerald-400'}">+${formatMoney(sale.amount)}</span>
                                     <button onclick="deleteSale('${batch.id}', '${sale.id}')" class="text-slate-500 hover:text-rose-400"><i class="fa-solid fa-trash-can"></i></button>
                                 </div>
                             </div>`;
@@ -597,7 +698,7 @@
                                     <p class="text-sm font-bold text-rose-400">-${formatMoney(batch.expense)}</p>
                                 </div>
                                 <div>
-                                    <p class="text-[10px] text-slate-400 uppercase">Продано</p>
+                                    <p class="text-[10px] text-slate-400 uppercase">Оплачено</p>
                                     <p class="text-sm font-bold text-emerald-400">+${formatMoney(totalSales)}</p>
                                 </div>
                                 <div>
@@ -617,6 +718,7 @@
                 });
             }
 
+            // История движения денег
             const historyListEl = document.getElementById('historyList');
             historyListEl.innerHTML = '';
 
@@ -653,6 +755,28 @@
                     historyListEl.innerHTML += itemHtml;
                 });
             }
+        }
+
+        // Экспорт в CSV (Excel)
+        function exportToCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+            csvContent += "Дата;Тип;Категория;Название / Описание;Сумма (UAH);Статус\n";
+
+            appState.batches.forEach(b => {
+                csvContent += `${b.date};Расход;${b.category};${b.title};-${b.expense};Оплачено\n`;
+                b.sales.forEach(s => {
+                    let st = s.status === 'debt' ? 'В долг' : 'Оплачено';
+                    csvContent += `${s.date};Продажа;Продажи;${s.note || 'Доход'};+${s.amount};${st}\n`;
+                });
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `dymny_gurman_report_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
         }
 
         function exportData() {

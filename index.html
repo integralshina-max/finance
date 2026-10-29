@@ -12,7 +12,7 @@
         body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
         .card { background-color: #1e293b; border: 1px solid #334155; }
         input, select { background-color: #0f172a !important; color: #f8fafc !important; border-color: #475569 !important; }
-        input:focus { border-color: #f97316 !important; outline: none; }
+        input:focus, select:focus { border-color: #f97316 !important; outline: none; }
     </style>
 </head>
 <body class="pb-12">
@@ -26,7 +26,7 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold leading-tight">Дымный Гурман</h1>
-                    <p class="text-xs text-slate-400">Финансовый учёт и партии</p>
+                    <p class="text-xs text-slate-400">Финансовый учёт по месяцам</p>
                 </div>
             </div>
             <button onclick="setInitialBalance()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg border border-slate-700 transition">
@@ -43,8 +43,35 @@
             <div class="text-3xl font-extrabold text-white mt-1" id="currentBalance">0 ₴</div>
             <p class="text-xs text-slate-400 mt-2 flex items-center gap-1">
                 <i class="fa-solid fa-circle-info text-orange-400"></i>
-                Автоматически пересчитывается при каждой закупке и продаже
+                Общий остаток денег с учётом всех операций за всё время
             </p>
+        </div>
+
+        <!-- Выбор месяца -->
+        <div class="card rounded-2xl p-4 space-y-3">
+            <div class="flex justify-between items-center">
+                <label class="text-xs font-bold text-slate-300 uppercase tracking-wider"><i class="fa-solid fa-calendar-days text-orange-500 mr-1"></i> Выбрать месяц</label>
+                <button onclick="resetMonthFilter()" class="text-xs text-orange-400 hover:underline">За всё время</button>
+            </div>
+            <select id="monthSelect" onchange="changeMonthFilter()" class="w-full p-2.5 rounded-xl border text-sm font-semibold">
+                <!-- Опции месяцев подставляются динамически -->
+            </select>
+
+            <!-- Сводка за выбранный месяц -->
+            <div id="monthSummaryCard" class="grid grid-cols-3 gap-2 bg-slate-900/90 p-3 rounded-xl text-center border border-slate-800 mt-2">
+                <div>
+                    <p class="text-[10px] text-slate-400 uppercase">Закупки за мес.</p>
+                    <p class="text-sm font-bold text-rose-400" id="monthExpense">0 ₴</p>
+                </div>
+                <div>
+                    <p class="text-[10px] text-slate-400 uppercase">Продажи за мес.</p>
+                    <p class="text-sm font-bold text-emerald-400" id="monthIncome">0 ₴</p>
+                </div>
+                <div>
+                    <p class="text-[10px] text-slate-400 uppercase">Итог за мес.</p>
+                    <p class="text-sm font-extrabold text-white" id="monthProfit">0 ₴</p>
+                </div>
+            </div>
         </div>
 
         <!-- Кнопки действий -->
@@ -58,7 +85,7 @@
         <!-- Переключатель Вкладок -->
         <div class="flex border-b border-slate-800 text-sm font-medium">
             <button id="tabBatchesBtn" onclick="switchTab('batches')" class="flex-1 py-3 text-center border-b-2 border-orange-500 text-orange-400 font-semibold">
-                <i class="fa-solid fa-boxes-stacked mr-1"></i> Активные партии
+                <i class="fa-solid fa-boxes-stacked mr-1"></i> Партии за месяц
             </button>
             <button id="tabHistoryBtn" onclick="switchTab('history')" class="flex-1 py-3 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200">
                 <i class="fa-solid fa-list-ol mr-1"></i> Движение денег
@@ -153,18 +180,23 @@
     </div>
 
     <script>
+        // Названия месяцев на русском
+        const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+
         // Инициализация данных
         let appState = JSON.parse(localStorage.getItem('dymny_gurman_finance')) || {
             initialBalance: 31000,
             batches: []
         };
 
+        // Текущий выбранный месяц ('all' или 'YYYY-MM')
+        let selectedMonth = 'all';
+
         function saveData() {
             localStorage.setItem('dymny_gurman_finance', JSON.stringify(appState));
             renderApp();
         }
 
-        // Задать стартовый баланс
         function setInitialBalance() {
             const current = appState.initialBalance || 0;
             const val = prompt("Укажите ваш начальный остаток денег (₴):", current);
@@ -174,7 +206,6 @@
             }
         }
 
-        // Переключение вкладок
         function switchTab(tab) {
             if (tab === 'batches') {
                 document.getElementById('tabBatches').classList.remove('hidden');
@@ -189,7 +220,6 @@
             }
         }
 
-        // Управление модальными окнами
         function openNewBatchModal() {
             document.getElementById('batchDate').value = new Date().toISOString().split('T')[0];
             document.getElementById('batchTitle').value = '';
@@ -209,7 +239,6 @@
             document.getElementById(id).classList.add('hidden');
         }
 
-        // Сохранить новую партию
         function saveNewBatch() {
             const date = document.getElementById('batchDate').value;
             const title = document.getElementById('batchTitle').value.trim() || 'Закупка сырья';
@@ -229,11 +258,14 @@
             };
 
             appState.batches.unshift(newBatch);
+            
+            // Автоматически переключаемся на месяц новой закупки
+            selectedMonth = date.substring(0, 7);
+            
             closeModal('newBatchModal');
             saveData();
         }
 
-        // Сохранить продажу
         function saveSale() {
             const batchId = document.getElementById('saleBatchId').value;
             const date = document.getElementById('saleDate').value;
@@ -259,7 +291,6 @@
             saveData();
         }
 
-        // Удаление элементов
         function deleteBatch(batchId) {
             if (confirm('Удалить эту закупку и все её продажи?')) {
                 appState.batches = appState.batches.filter(b => b.id !== batchId);
@@ -277,18 +308,54 @@
             }
         }
 
-        // Форматирование чисел
         function formatMoney(num) {
             return new Intl.NumberFormat('ru-RU').format(num) + ' ₴';
         }
 
-        // Рендер всего приложения и расчёт баланса
+        function changeMonthFilter() {
+            selectedMonth = document.getElementById('monthSelect').value;
+            renderApp();
+        }
+
+        function resetMonthFilter() {
+            selectedMonth = 'all';
+            document.getElementById('monthSelect').value = 'all';
+            renderApp();
+        }
+
+        // Рендер селекта месяцев на основе существующих записей
+        function updateMonthDropdown(transactions) {
+            const select = document.getElementById('monthSelect');
+            
+            // Собираем все уникальные месяцы из транзакций
+            let monthsSet = new Set();
+            transactions.forEach(t => {
+                if (t.date) {
+                    monthsSet.add(t.date.substring(0, 7)); // YYYY-MM
+                }
+            });
+
+            let monthsArr = Array.from(monthsSet).sort().reverse(); // Свежие сверху
+
+            let html = `<option value="all">📅 Все месяцы (за всё время)</option>`;
+            monthsArr.forEach(m => {
+                let [year, monthNum] = m.split('-');
+                let monthName = monthNames[parseInt(monthNum) - 1] || monthNum;
+                let selected = selectedMonth === m ? 'selected' : '';
+                html += `<option value="${m}" ${selected}>${monthName} ${year}</option>`;
+            });
+
+            select.innerHTML = html;
+            if (selectedMonth !== 'all') {
+                select.value = selectedMonth;
+            }
+        }
+
         function renderApp() {
-            // Собираем все транзакции в один хронологический список
+            // 1. Собираем все транзакции
             let transactions = [];
 
             appState.batches.forEach(batch => {
-                // Расход по закупке
                 transactions.push({
                     timestamp: new Date(batch.date).getTime(),
                     date: batch.date,
@@ -298,7 +365,6 @@
                     batchId: batch.id
                 });
 
-                // Доходы от продаж
                 batch.sales.forEach(sale => {
                     transactions.push({
                         timestamp: new Date(sale.date).getTime(),
@@ -312,7 +378,7 @@
                 });
             });
 
-            // Сортируем от самых старых к новым для правильного расчёта баланса
+            // Сортируем по хронологии для общего баланса кассы
             transactions.sort((a, b) => a.timestamp - b.timestamp);
 
             let runningBalance = appState.initialBalance || 0;
@@ -325,20 +391,50 @@
                 t.balanceAfter = runningBalance;
             });
 
-            // Текущий остаток — это последняя точка баланса
+            // Общий остаток в кассе
             document.getElementById('currentBalance').innerText = formatMoney(runningBalance);
 
-            // РЕНДЕР ВКЛАДКИ 1: ПАРТИИ
+            // Обновляем список месяцев в выпадающем списке
+            updateMonthDropdown(transactions);
+
+            // 2. Считаем статистику за выбранный месяц
+            let mExpense = 0;
+            let mIncome = 0;
+
+            transactions.forEach(t => {
+                let tMonth = t.date ? t.date.substring(0, 7) : '';
+                if (selectedMonth === 'all' || tMonth === selectedMonth) {
+                    if (t.type === 'expense') mExpense += t.amount;
+                    if (t.type === 'income') mIncome += t.amount;
+                }
+            });
+
+            let mProfit = mIncome - mExpense;
+            document.getElementById('monthExpense').innerText = '-' + formatMoney(mExpense);
+            document.getElementById('monthIncome').innerText = '+' + formatMoney(mIncome);
+            
+            const profitEl = document.getElementById('monthProfit');
+            profitEl.innerText = (mProfit >= 0 ? '+' : '') + formatMoney(mProfit);
+            profitEl.className = `text-sm font-extrabold ${mProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+
+            // 3. РЕНДЕР ВКЛАДКИ 1: ПАРТИИ (фильтруем партии по месяцу закупки или наличию продаж в этом месяце)
             const batchesListEl = document.getElementById('batchesList');
             batchesListEl.innerHTML = '';
 
-            if (appState.batches.length === 0) {
+            let filteredBatches = appState.batches.filter(batch => {
+                if (selectedMonth === 'all') return true;
+                let batchMonth = batch.date.substring(0, 7);
+                let hasSaleInMonth = batch.sales.some(s => s.date.substring(0, 7) === selectedMonth);
+                return batchMonth === selectedMonth || hasSaleInMonth;
+            });
+
+            if (filteredBatches.length === 0) {
                 batchesListEl.innerHTML = `<div class="text-center py-12 text-slate-500">
                     <i class="fa-solid fa-box-open text-4xl mb-3 block"></i>
-                    У вас пока нет ни одной закупки.<br>Нажмите «+ Новая закупка / Партия», чтобы начать.
+                    За выбранный месяц нет закупок и продаж.<br>Нажмите «+ Новая закупка / Партия», чтобы добавить.
                 </div>`;
             } else {
-                appState.batches.forEach(batch => {
+                filteredBatches.forEach(batch => {
                     const totalSales = batch.sales.reduce((sum, s) => sum + s.amount, 0);
                     const netProfit = totalSales - batch.expense;
                     const profitClass = netProfit >= 0 ? 'text-emerald-400' : 'text-rose-400';
@@ -372,7 +468,6 @@
                                 <button onclick="deleteBatch('${batch.id}')" class="text-slate-500 hover:text-rose-400 p-1"><i class="fa-solid fa-trash-can"></i></button>
                             </div>
 
-                            <!-- Сводка по партии -->
                             <div class="grid grid-cols-3 gap-2 bg-slate-900/80 p-3 rounded-xl text-center border border-slate-800">
                                 <div>
                                     <p class="text-[10px] text-slate-400 uppercase">Закупка</p>
@@ -399,15 +494,19 @@
                 });
             }
 
-            // РЕНДЕР ВКЛАДКИ 2: ХРОНОЛОГИЯ ДЕНЕГ
+            // 4. РЕНДЕР ВКЛАДКИ 2: ХРОНОЛОГИЯ ДЕНЕГ (фильтруем по месяцу)
             const historyListEl = document.getElementById('historyList');
             historyListEl.innerHTML = '';
 
-            if (transactions.length === 0) {
-                historyListEl.innerHTML = `<div class="text-center py-6 text-slate-500">История операций пуста.</div>`;
+            let filteredTransactions = transactions.filter(t => {
+                if (selectedMonth === 'all') return true;
+                return t.date.substring(0, 7) === selectedMonth;
+            });
+
+            if (filteredTransactions.length === 0) {
+                historyListEl.innerHTML = `<div class="text-center py-6 text-slate-500">За выбранный месяц операций не было.</div>`;
             } else {
-                // Показываем транзакции от самых свежих к старым
-                [...transactions].reverse().forEach(t => {
+                [...filteredTransactions].reverse().forEach(t => {
                     const isExpense = t.type === 'expense';
                     const amountClass = isExpense ? 'text-rose-400' : 'text-emerald-400';
                     const sign = isExpense ? '-' : '+';
@@ -420,7 +519,7 @@
                                     <span class="font-medium text-slate-200 text-xs">${t.title}</span>
                                 </div>
                                 <div class="text-[11px] text-slate-500 mt-0.5">
-                                    Остаток денег: <strong class="text-slate-300">${formatMoney(t.balanceAfter)}</strong>
+                                    Остаток в кассе: <strong class="text-slate-300">${formatMoney(t.balanceAfter)}</strong>
                                 </div>
                             </div>
                             <div class="font-bold text-sm ${amountClass}">
@@ -433,7 +532,6 @@
             }
         }
 
-        // Бэкап и Восстановление
         function exportData() {
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState));
             const downloadAnchor = document.createElement('a');

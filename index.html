@@ -46,7 +46,14 @@
 
     <main class="max-w-2xl mx-auto p-4 space-y-5">
 
-        <!-- Балансы: Касса и Заначка -->
+        <!-- Общая сумма (Всё вместе) -->
+        <div class="card rounded-2xl p-5 border-l-4 border-l-emerald-500 shadow-xl bg-gradient-to-r from-slate-900 to-slate-800">
+            <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Общая сумма (Касса + Копилка)</p>
+            <div class="text-3xl font-extrabold text-emerald-400 mt-1" id="totalGeneralBalance">0 ₴</div>
+            <p class="text-[11px] text-slate-400 mt-1">Всего денег в вашем распоряжении</p>
+        </div>
+
+        <!-- Балансы: Касса и Копилка -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <!-- Касса (оборотные) -->
             <div class="card rounded-2xl p-5 border-l-4 border-l-orange-500 shadow-xl">
@@ -55,15 +62,15 @@
                 <p class="text-[11px] text-slate-400 mt-2">Доступно для закупок</p>
             </div>
 
-            <!-- Заначка / Копилка -->
+            <!-- Копилка -->
             <div class="card rounded-2xl p-5 border-l-4 border-l-sky-500 shadow-xl flex flex-col justify-between">
                 <div>
-                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">В заначке (Копилка)</p>
-                    <div class="text-2xl font-extrabold text-sky-400 mt-1" id="stashBalance">0 ₴</div>
+                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Копилка</p>
+                    <div class="text-2xl font-extrabold text-sky-400 mt-1 cursor-pointer hover:underline" onclick="editStashDirectly()" title="Нажмите, чтобы изменить сумму">${formatMoney(appState.stashBalance || 0)}</div>
                 </div>
                 <div class="flex gap-2 mt-3">
                     <button onclick="openStashModal('add')" class="flex-1 bg-sky-600/80 hover:bg-sky-500 text-white text-xs font-semibold py-1.5 px-2 rounded-lg transition">
-                        <i class="fa-solid fa-plus"></i> В заначку
+                        <i class="fa-solid fa-plus"></i> В копилку
                     </button>
                     <button onclick="openStashModal('take')" class="bg-slate-800 hover:bg-slate-700 text-sky-400 text-xs font-semibold py-1.5 px-2 rounded-lg border border-slate-700 transition">
                         <i class="fa-solid fa-arrow-rotate-left"></i> В оборот
@@ -197,11 +204,11 @@
 
     </main>
 
-    <!-- Модальное окно: Заначка -->
+    <!-- Модальное окно: Копилка -->
     <div id="stashModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
         <div class="card rounded-2xl w-full max-w-md p-5 space-y-4">
             <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-                <h3 class="font-bold text-lg text-white" id="stashModalTitle"><i class="fa-solid fa-piggy-bank text-sky-400 mr-2"></i>Заначка</h3>
+                <h3 class="font-bold text-lg text-white" id="stashModalTitle"><i class="fa-solid fa-piggy-bank text-sky-400 mr-2"></i>Копилка</h3>
                 <button onclick="closeModal('stashModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
             
@@ -364,9 +371,18 @@
 
         function setInitialBalance() {
             const current = appState.initialBalance || 0;
-            const val = prompt("Укажите ваш стартовый капитал / оборотные средства (₴):", current);
+            const val = prompt("Укажите ваши деньги в обороте (кассу) (₴):", current);
             if (val !== null && !isNaN(parseFloat(val))) {
                 appState.initialBalance = parseFloat(val);
+                saveData();
+            }
+        }
+
+        function editStashDirectly() {
+            const current = appState.stashBalance || 0;
+            const val = prompt("Укажите общую сумму в копилке (₴):", current);
+            if (val !== null && !isNaN(parseFloat(val))) {
+                appState.stashBalance = parseFloat(val);
                 saveData();
             }
         }
@@ -374,11 +390,11 @@
         function openStashModal(type) {
             document.getElementById('stashActionType').value = type;
             if (type === 'add') {
-                document.getElementById('stashModalTitle').innerHTML = '<i class="fa-solid fa-piggy-bank text-sky-400 mr-2"></i>Отложить в заначку';
-                document.getElementById('stashLabel').innerText = 'Сколько отложить из кассы (₴):';
+                document.getElementById('stashModalTitle').innerHTML = '<i class="fa-solid fa-piggy-bank text-sky-400 mr-2"></i>Добавить в копилку';
+                document.getElementById('stashLabel').innerText = 'Сколько добавить из кассы (₴):';
             } else {
-                document.getElementById('stashModalTitle').innerHTML = '<i class="fa-solid fa-arrow-rotate-left text-sky-400 mr-2"></i>Вернуть в оборот';
-                document.getElementById('stashLabel').innerText = 'Сколько вернуть из заначки в кассу (₴):';
+                document.getElementById('stashModalTitle').innerHTML = '<i class="fa-solid fa-arrow-rotate-left text-sky-400 mr-2"></i>Забрать в оборот';
+                document.getElementById('stashLabel').innerText = 'Сколько забрать из копилки в кассу (₴):';
             }
             document.getElementById('stashAmount').value = '';
             document.getElementById('stashModal').classList.remove('hidden');
@@ -403,21 +419,21 @@
                 appState.stashOperations.push({
                     id: Date.now().toString(),
                     date: today,
-                    type: 'expense', // Уменьшает кассу
-                    title: 'В заначку (копилка)',
+                    type: 'expense',
+                    title: 'В копилку',
                     amount: amount
                 });
             } else {
                 if (amount > appState.stashBalance) {
-                    alert('В заначке нет столько денег!');
+                    alert('В копилке нет столько денег!');
                     return;
                 }
                 appState.stashBalance -= amount;
                 appState.stashOperations.push({
                     id: Date.now().toString(),
                     date: today,
-                    type: 'income', // Увеличивает кассу
-                    title: 'Из заначки в оборот',
+                    type: 'income',
+                    title: 'Из копилки в оборот',
                     amount: amount
                 });
             }
@@ -692,14 +708,13 @@
             let transactions = [];
             let totalUnpaidDebt = 0;
 
-            // Затолкаем операции по заначке в общий список
             if (appState.stashOperations) {
                 appState.stashOperations.forEach(op => {
                     transactions.push({
                         timestamp: new Date(op.date).getTime(),
                         date: op.date,
                         type: op.type,
-                        category: 'Заначка',
+                        category: 'Копилка',
                         title: op.title,
                         amount: op.amount
                     });
@@ -746,8 +761,12 @@
                 t.balanceAfter = runningBalance;
             });
 
+            const stashBal = appState.stashBalance || 0;
+            const totalGeneral = runningBalance + stashBal;
+
             document.getElementById('currentBalance').innerText = formatMoney(runningBalance);
-            document.getElementById('stashBalance').innerText = formatMoney(appState.stashBalance || 0);
+            document.getElementById('stashBalance').innerText = formatMoney(stashBal);
+            document.getElementById('totalGeneralBalance').innerText = formatMoney(totalGeneral);
 
             updateMonthDropdown(transactions);
 
@@ -988,7 +1007,7 @@
             if (appState.stashOperations) {
                 appState.stashOperations.forEach(op => {
                     let sign = op.type === 'expense' ? '-' : '+';
-                    csvContent += `${op.date};Заначка;Заначка;${op.title};${sign}${op.amount};Оплачено\n`;
+                    csvContent += `${op.date};Копилка;Копилка;${op.title};${sign}${op.amount};Оплачено\n`;
                 });
             }
 

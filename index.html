@@ -49,7 +49,7 @@
         <!-- Общая сумма денег -->
         <div class="card rounded-2xl p-5 border-l-4 border-l-emerald-500 shadow-xl bg-gradient-to-r from-slate-900 to-slate-800">
             <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Общая сумма (Оборот + Копилка)</p>
-            <div class="text-4xl font-black text-emerald-400 mt-1" id="totalGeneralBalance">0 ₴</div>
+            <div class="text-4xl font-black text-emerald-400 mt-1" id="totalGeneralBalance">29 974 ₴</div>
             <p class="text-xs text-slate-400 mt-1">Всего денег в вашем распоряжении</p>
         </div>
 
@@ -62,7 +62,7 @@
                         <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Деньги в обороте</p>
                         <button onclick="setInitialBalance()" class="text-xs text-orange-400 hover:underline" title="Редактировать оборот"><i class="fa-solid fa-pen"></i></button>
                     </div>
-                    <div class="text-3xl font-black text-white mt-1 cursor-pointer" id="currentBalance" onclick="setInitialBalance()">0 ₴</div>
+                    <div class="text-3xl font-black text-white mt-1 cursor-pointer" id="currentBalance" onclick="setInitialBalance()">1 974 ₴</div>
                 </div>
                 <p class="text-[11px] text-slate-400 mt-3">Меняется от закупок и продаж</p>
             </div>
@@ -74,7 +74,7 @@
                         <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Копилка</p>
                         <button onclick="editStashDirectly()" class="text-xs text-sky-400 hover:underline" title="Редактировать копилку"><i class="fa-solid fa-pen"></i></button>
                     </div>
-                    <div class="text-3xl font-black text-sky-400 mt-1 cursor-pointer" id="stashBalance" onclick="editStashDirectly()">0 ₴</div>
+                    <div class="text-3xl font-black text-sky-400 mt-1 cursor-pointer" id="stashBalance" onclick="editStashDirectly()">28 000 ₴</div>
                 </div>
                 <div class="flex gap-2 mt-3">
                     <button onclick="openStashModal('add')" class="flex-1 bg-sky-600/80 hover:bg-sky-500 text-white text-xs font-semibold py-1.5 px-2 rounded-lg transition">
@@ -377,10 +377,13 @@
         }
 
         function setInitialBalance() {
-            const current = appState.initialBalance || 0;
-            const val = prompt("Укажите текущую сумму денег в обороте (кассу) (₴):", current);
+            let currentRunningBalance = calculateRunningBalance();
+            const val = prompt("Укажите текущую сумму денег в обороте (кассу) (₴):", currentRunningBalance);
             if (val !== null && !isNaN(parseFloat(val))) {
-                appState.initialBalance = parseFloat(val);
+                let targetRunning = parseFloat(val);
+                // Корректируем базовый за счет разницы с партийными тратами/доходами
+                let currentBatchesProfit = calculateBatchesProfit();
+                appState.initialBalance = targetRunning - currentBatchesProfit;
                 saveData();
             }
         }
@@ -419,14 +422,11 @@
             if (!appState.stashBalance) appState.stashBalance = 0;
 
             if (type === 'add') {
-                // Проверим, хватает ли денег в обороте (через расчет текущей кассы)
                 let currentRunningBalance = calculateRunningBalance();
                 if (amount > currentRunningBalance) {
                     alert('В обороте нет столько свободных денег для перевода в копилку!');
                     return;
                 }
-                // Чтобы оборот уменьшился на эту сумму, мы просто увеличиваем initialBalance (стартовый) или можем уменьшить через запись расхода.
-                // Самый надежный способ в нашей модели: уменьшить initialBalance на сумму перевода в копилку
                 appState.initialBalance -= amount;
                 appState.stashBalance += amount;
             } else {
@@ -435,24 +435,28 @@
                     return;
                 }
                 appState.stashBalance -= amount;
-                appState.initialBalance += amount; // Возвращаем в оборот
+                appState.initialBalance += amount;
             }
 
             closeModal('stashModal');
             saveData();
         }
 
-        function calculateRunningBalance() {
-            let runningBalance = appState.initialBalance || 0;
+        function calculateBatchesProfit() {
+            let profit = 0;
             appState.batches.forEach(batch => {
-                runningBalance -= batch.expense;
+                profit -= batch.expense;
                 batch.sales.forEach(sale => {
                     if (sale.status !== 'debt') {
-                        runningBalance += sale.amount;
+                        profit += sale.amount;
                     }
                 });
             });
-            return runningBalance;
+            return profit;
+        }
+
+        function calculateRunningBalance() {
+            return (appState.initialBalance || 0) + calculateBatchesProfit();
         }
 
         function switchTab(tab) {

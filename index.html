@@ -38,28 +38,33 @@
                     <p class="text-xs text-slate-400">Финансовый учёт и аналитика</p>
                 </div>
             </div>
-            <button onclick="setInitialBalance()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg border border-slate-700 transition">
-                <i class="fa-solid fa-wallet text-orange-500 mr-1"></i> Баланс кассы
+            <button onclick="exportData()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg border border-slate-700 transition">
+                <i class="fa-solid fa-download mr-1"></i> Бэкап
             </button>
         </div>
     </header>
 
     <main class="max-w-2xl mx-auto p-4 space-y-5">
 
-        <!-- Карточка 3: Общая сумма денег -->
+        <!-- Общая сумма денег -->
         <div class="card rounded-2xl p-5 border-l-4 border-l-emerald-500 shadow-xl bg-gradient-to-r from-slate-900 to-slate-800">
-            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Общая сумма денег</p>
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Общая сумма (Оборот + Копилка)</p>
             <div class="text-4xl font-black text-emerald-400 mt-1" id="totalGeneralBalance">0 ₴</div>
-            <p class="text-xs text-slate-400 mt-1">Оборотные средства + Копилка</p>
+            <p class="text-xs text-slate-400 mt-1">Всего денег в вашем распоряжении</p>
         </div>
 
-        <!-- Карточки 1 и 2: Деньги в обороте и Копилка -->
+        <!-- Карточки: Деньги в обороте и Копилка -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <!-- Деньги в обороте -->
-            <div class="card rounded-2xl p-5 border-l-4 border-l-orange-500 shadow-xl">
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Деньги в обороте</p>
-                <div class="text-3xl font-black text-white mt-1" id="currentBalance">0 ₴</div>
-                <p class="text-[11px] text-slate-400 mt-2">Доступно для закупок</p>
+            <div class="card rounded-2xl p-5 border-l-4 border-l-orange-500 shadow-xl flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center">
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Деньги в обороте</p>
+                        <button onclick="setInitialBalance()" class="text-xs text-orange-400 hover:underline" title="Редактировать оборот"><i class="fa-solid fa-pen"></i></button>
+                    </div>
+                    <div class="text-3xl font-black text-white mt-1 cursor-pointer" id="currentBalance" onclick="setInitialBalance()">0 ₴</div>
+                </div>
+                <p class="text-[11px] text-slate-400 mt-3">Меняется от закупок и продаж</p>
             </div>
 
             <!-- Копилка -->
@@ -67,11 +72,18 @@
                 <div>
                     <div class="flex justify-between items-center">
                         <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Копилка</p>
-                        <button onclick="editStashDirectly()" class="text-xs text-sky-400 hover:underline" title="Изменить сумму"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="editStashDirectly()" class="text-xs text-sky-400 hover:underline" title="Редактировать копилку"><i class="fa-solid fa-pen"></i></button>
                     </div>
                     <div class="text-3xl font-black text-sky-400 mt-1 cursor-pointer" id="stashBalance" onclick="editStashDirectly()">0 ₴</div>
                 </div>
-                <p class="text-[11px] text-slate-400 mt-2">Личные сбережения</p>
+                <div class="flex gap-2 mt-3">
+                    <button onclick="openStashModal('add')" class="flex-1 bg-sky-600/80 hover:bg-sky-500 text-white text-xs font-semibold py-1.5 px-2 rounded-lg transition">
+                        <i class="fa-solid fa-plus"></i> В копилку
+                    </button>
+                    <button onclick="openStashModal('take')" class="bg-slate-800 hover:bg-slate-700 text-sky-400 text-xs font-semibold py-1.5 px-2 rounded-lg border border-slate-700 transition">
+                        <i class="fa-solid fa-arrow-rotate-left"></i> В оборот
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -199,6 +211,30 @@
         </div>
 
     </main>
+
+    <!-- Модальное окно: Перевод в копилку / из копилки -->
+    <div id="stashModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="card rounded-2xl w-full max-w-md p-5 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="font-bold text-lg text-white" id="stashModalTitle"><i class="fa-solid fa-piggy-bank text-sky-400 mr-2"></i>Копилка</h3>
+                <button onclick="closeModal('stashModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            
+            <input type="hidden" id="stashActionType">
+
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1" id="stashLabel">Сумма (₴)</label>
+                    <input type="number" id="stashAmount" placeholder="1000" class="w-full p-2.5 rounded-xl border text-sm">
+                </div>
+            </div>
+
+            <div class="flex gap-2 pt-2">
+                <button onclick="processStashAction()" class="flex-1 bg-sky-600 hover:bg-sky-500 text-white font-semibold py-2.5 rounded-xl text-sm">Подтвердить</button>
+                <button onclick="closeModal('stashModal')" class="bg-slate-800 text-slate-300 px-4 py-2.5 rounded-xl text-sm">Отмена</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Модальное окно: Расход -->
     <div id="newBatchModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
@@ -328,8 +364,8 @@
         const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
 
         let appState = JSON.parse(localStorage.getItem('dymny_gurman_finance')) || {
-            initialBalance: 31000,
-            stashBalance: 0,
+            initialBalance: 1974,
+            stashBalance: 28000,
             batches: []
         };
 
@@ -342,7 +378,7 @@
 
         function setInitialBalance() {
             const current = appState.initialBalance || 0;
-            const val = prompt("Укажите сумму денег в обороте (кассу) (₴):", current);
+            const val = prompt("Укажите текущую сумму денег в обороте (кассу) (₴):", current);
             if (val !== null && !isNaN(parseFloat(val))) {
                 appState.initialBalance = parseFloat(val);
                 saveData();
@@ -356,6 +392,67 @@
                 appState.stashBalance = parseFloat(val);
                 saveData();
             }
+        }
+
+        function openStashModal(type) {
+            document.getElementById('stashActionType').value = type;
+            if (type === 'add') {
+                document.getElementById('stashModalTitle').innerHTML = '<i class="fa-solid fa-piggy-bank text-sky-400 mr-2"></i>Положить в копилку';
+                document.getElementById('stashLabel').innerText = 'Сколько списать с оборота в копилку (₴):';
+            } else {
+                document.getElementById('stashModalTitle').innerHTML = '<i class="fa-solid fa-arrow-rotate-left text-sky-400 mr-2"></i>Забрать в оборот';
+                document.getElementById('stashLabel').innerText = 'Сколько вернуть из копилки в оборот (₴):';
+            }
+            document.getElementById('stashAmount').value = '';
+            document.getElementById('stashModal').classList.remove('hidden');
+        }
+
+        function processStashAction() {
+            const type = document.getElementById('stashActionType').value;
+            const amount = parseFloat(document.getElementById('stashAmount').value);
+
+            if (isNaN(amount) || amount <= 0) {
+                alert('Введите корректную сумму.');
+                return;
+            }
+
+            if (!appState.stashBalance) appState.stashBalance = 0;
+
+            if (type === 'add') {
+                // Проверим, хватает ли денег в обороте (через расчет текущей кассы)
+                let currentRunningBalance = calculateRunningBalance();
+                if (amount > currentRunningBalance) {
+                    alert('В обороте нет столько свободных денег для перевода в копилку!');
+                    return;
+                }
+                // Чтобы оборот уменьшился на эту сумму, мы просто увеличиваем initialBalance (стартовый) или можем уменьшить через запись расхода.
+                // Самый надежный способ в нашей модели: уменьшить initialBalance на сумму перевода в копилку
+                appState.initialBalance -= amount;
+                appState.stashBalance += amount;
+            } else {
+                if (amount > appState.stashBalance) {
+                    alert('В копилке нет столько денег!');
+                    return;
+                }
+                appState.stashBalance -= amount;
+                appState.initialBalance += amount; // Возвращаем в оборот
+            }
+
+            closeModal('stashModal');
+            saveData();
+        }
+
+        function calculateRunningBalance() {
+            let runningBalance = appState.initialBalance || 0;
+            appState.batches.forEach(batch => {
+                runningBalance -= batch.expense;
+                batch.sales.forEach(sale => {
+                    if (sale.status !== 'debt') {
+                        runningBalance += sale.amount;
+                    }
+                });
+            });
+            return runningBalance;
         }
 
         function switchTab(tab) {

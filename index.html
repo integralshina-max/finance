@@ -132,7 +132,19 @@
         </div>
 
         <!-- ВКЛАДКА 2: Хронологическая История Движения Денег -->
-        <div id="tabHistory" class="hidden space-y-3">
+        <div id="tabHistory" class="hidden space-y-4">
+            <!-- Сводный блок по расходам и доходам -->
+            <div class="card rounded-2xl p-4 grid grid-cols-2 gap-3 border-l-4 border-l-sky-500">
+                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                    <p class="text-[11px] text-slate-400">Всего потрачено</p>
+                    <p class="text-base font-bold text-rose-400 mt-1" id="historyTotalExpense">0 ₴</p>
+                </div>
+                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                    <p class="text-[11px] text-slate-400">Всего пришло</p>
+                    <p class="text-base font-bold text-emerald-400 mt-1" id="historyTotalIncome">0 ₴</p>
+                </div>
+            </div>
+
             <div class="card rounded-xl p-4">
                 <h3 class="text-sm font-bold text-slate-300 mb-3">Хронология расходов, доходов и остатка</h3>
                 <div id="historyList" class="space-y-2 text-sm">
@@ -381,7 +393,6 @@
             const val = prompt("Укажите текущую сумму денег в обороте (кассу) (₴):", currentRunningBalance);
             if (val !== null && !isNaN(parseFloat(val))) {
                 let targetRunning = parseFloat(val);
-                // Корректируем базовый за счет разницы с партийными тратами/доходами
                 let currentBatchesProfit = calculateBatchesProfit();
                 appState.initialBalance = targetRunning - currentBatchesProfit;
                 saveData();
@@ -973,6 +984,17 @@
                 if (selectedMonth === 'all') return true;
                 return t.date.substring(0, 7) === selectedMonth;
             });
+
+            // Расчёт сумм для сводки на вкладке истории
+            let historyExpenseSum = 0;
+            let historyIncomeSum = 0;
+            filteredTransactions.forEach(t => {
+                if (t.type === 'expense') historyExpenseSum += t.amount;
+                else if (t.type === 'income') historyIncomeSum += t.amount;
+            });
+
+            document.getElementById('historyTotalExpense').innerText = '-' + formatMoney(historyExpenseSum);
+            document.getElementById('historyTotalIncome').innerText = '+' + formatMoney(historyIncomeSum);
 
             if (filteredTransactions.length === 0) {
                 historyListEl.innerHTML = `<div class="text-center py-6 text-slate-500">За выбранный период операций не было.</div>`;

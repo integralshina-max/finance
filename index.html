@@ -39,28 +39,40 @@
                 </div>
             </div>
             <button onclick="setInitialBalance()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg border border-slate-700 transition">
-                <i class="fa-solid fa-wallet text-orange-500 mr-1"></i> Стартовый капитал
+                <i class="fa-solid fa-wallet text-orange-500 mr-1"></i> Баланс кассы
             </button>
         </div>
     </header>
 
     <main class="max-w-2xl mx-auto p-4 space-y-5">
 
-        <!-- Общая сумма денег -->
+        <!-- Карточка 3: Общая сумма денег -->
         <div class="card rounded-2xl p-5 border-l-4 border-l-emerald-500 shadow-xl bg-gradient-to-r from-slate-900 to-slate-800">
             <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Общая сумма денег</p>
             <div class="text-4xl font-black text-emerald-400 mt-1" id="totalGeneralBalance">0 ₴</div>
-            <p class="text-xs text-slate-400 mt-1">Реальный остаток средств по всем операциям</p>
+            <p class="text-xs text-slate-400 mt-1">Оборотные средства + Копилка</p>
         </div>
 
-        <!-- Деньги в кассе / обороте -->
-        <div class="card rounded-2xl p-5 border-l-4 border-l-orange-500 shadow-xl">
-            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Деньги в кассе (в обороте)</p>
-            <div class="text-3xl font-extrabold text-white mt-1" id="currentBalance">0 ₴</div>
-            <p class="text-xs text-slate-400 mt-2 flex items-center gap-1">
-                <i class="fa-solid fa-circle-info text-orange-400"></i>
-                Фактический доступный баланс
-            </p>
+        <!-- Карточки 1 и 2: Деньги в обороте и Копилка -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <!-- Деньги в обороте -->
+            <div class="card rounded-2xl p-5 border-l-4 border-l-orange-500 shadow-xl">
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Деньги в обороте</p>
+                <div class="text-3xl font-black text-white mt-1" id="currentBalance">0 ₴</div>
+                <p class="text-[11px] text-slate-400 mt-2">Доступно для закупок</p>
+            </div>
+
+            <!-- Копилка -->
+            <div class="card rounded-2xl p-5 border-l-4 border-l-sky-500 shadow-xl flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center">
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Копилка</p>
+                        <button onclick="editStashDirectly()" class="text-xs text-sky-400 hover:underline" title="Изменить сумму"><i class="fa-solid fa-pen"></i></button>
+                    </div>
+                    <div class="text-3xl font-black text-sky-400 mt-1 cursor-pointer" id="stashBalance" onclick="editStashDirectly()">0 ₴</div>
+                </div>
+                <p class="text-[11px] text-slate-400 mt-2">Личные сбережения</p>
+            </div>
         </div>
 
         <!-- Выбор месяца -->
@@ -112,7 +124,7 @@
             <div class="card rounded-xl p-4">
                 <h3 class="text-sm font-bold text-slate-300 mb-3">Хронология расходов, доходов и остатка</h3>
                 <div id="historyList" class="space-y-2 text-sm">
-                    <!-- История рендерится сюда -->
+                    <!-- История рендерятся сюда -->
                 </div>
             </div>
         </div>
@@ -317,6 +329,7 @@
 
         let appState = JSON.parse(localStorage.getItem('dymny_gurman_finance')) || {
             initialBalance: 31000,
+            stashBalance: 0,
             batches: []
         };
 
@@ -329,9 +342,18 @@
 
         function setInitialBalance() {
             const current = appState.initialBalance || 0;
-            const val = prompt("Укажите ваши исходные оборотные средства (₴):", current);
+            const val = prompt("Укажите сумму денег в обороте (кассу) (₴):", current);
             if (val !== null && !isNaN(parseFloat(val))) {
                 appState.initialBalance = parseFloat(val);
+                saveData();
+            }
+        }
+
+        function editStashDirectly() {
+            const current = appState.stashBalance || 0;
+            const val = prompt("Укажите сумму в копилке (₴):", current);
+            if (val !== null && !isNaN(parseFloat(val))) {
+                appState.stashBalance = parseFloat(val);
                 saveData();
             }
         }
@@ -642,8 +664,12 @@
                 t.balanceAfter = runningBalance;
             });
 
+            const stashBal = appState.stashBalance || 0;
+            const totalGeneral = runningBalance + stashBal;
+
             document.getElementById('currentBalance').innerText = formatMoney(runningBalance);
-            document.getElementById('totalGeneralBalance').innerText = formatMoney(runningBalance);
+            document.getElementById('stashBalance').innerText = formatMoney(stashBal);
+            document.getElementById('totalGeneralBalance').innerText = formatMoney(totalGeneral);
 
             updateMonthDropdown(transactions);
 
